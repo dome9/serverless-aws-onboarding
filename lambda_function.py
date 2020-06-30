@@ -12,7 +12,7 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 
-class Onboarder(object):
+class LambdaHandler(object):
 
     MASTER_ACCOUNT_PERMISSIONS_STACK_SET_NAME = 'Dome9AutomaticOnboardigStackSet'
     CUSTOMER_ACCOUNT_EXECUTION_ROLE_NAME = "AWSControlTowerExecution"
@@ -39,15 +39,33 @@ class Onboarder(object):
 
     @staticmethod
     def retrieve_master_account_id() -> str:
+        """
+        Retrieve account running this lambda
+
+        :return: Account name
+        """
+
         sts_client = boto3.client('sts')
         response = sts_client.get_caller_identity()
         return response.get("Account")
 
     @staticmethod
     def generate_external_id() -> str:
+        """
+        Generate external id to be used in New Account Dome9 role for trust.
+
+        :return:
+        """
+
         return str(uuid4())[:8]
 
     def create_stack_set(self) -> Dict:
+        """
+        Trigger AWS stack set creation.
+
+        :return: Response of the creation command
+        """
+
         administrator_role_arn = f"arn:aws:iam::{self.master_account_id}:role/{self.MASTER_ACCOUNT_STACK_SET_ROLE}"
 
         logger.info(f"Creating StackSet: {self.MASTER_ACCOUNT_PERMISSIONS_STACK_SET_NAME}, "
@@ -59,7 +77,7 @@ class Onboarder(object):
             template_body = f.read()
 
         response = self.cloudformation_client.create_stack_set(
-            StackSetName=Onboarder.MASTER_ACCOUNT_PERMISSIONS_STACK_SET_NAME,
+            StackSetName=LambdaHandler.MASTER_ACCOUNT_PERMISSIONS_STACK_SET_NAME,
             Description='Dome9 auto onboarding stack set',
             TemplateBody=template_body,
             Parameters=[{'ParameterKey': 'Externalid', 'ParameterValue': "Placeholder"},
@@ -68,12 +86,17 @@ class Onboarder(object):
                 'CAPABILITY_IAM', 'CAPABILITY_NAMED_IAM', 'CAPABILITY_AUTO_EXPAND'
             ],
             AdministrationRoleARN=administrator_role_arn,
-            ExecutionRoleName=Onboarder.CUSTOMER_ACCOUNT_EXECUTION_ROLE_NAME
+            ExecutionRoleName=LambdaHandler.CUSTOMER_ACCOUNT_EXECUTION_ROLE_NAME
         )
 
         return response
 
     def create_stack_instances(self) -> None:
+        """
+        Trigger the stack instance creation both on Master side and New Account side.
+
+        :return:
+        """
         logger.info(f"Creating stack instance for StackSet: {self.MASTER_ACCOUNT_PERMISSIONS_STACK_SET_NAME}, "
                     f"region: {self.region_name}, AccountId: {self.customer_account_id}, "
                     f"NewRoleName {self.customer_account_new_role_name}")
@@ -92,6 +115,13 @@ class Onboarder(object):
         self.wait_for_stack_operation(response["OperationId"])
 
     def wait_for_stack_operation(self, operation_id: str) -> None:
+        """
+        Wait for operation to complete.
+
+        :param operation_id: The operation id to wait for
+        :return: None
+
+        """
         for retry_count in range(self.STACK_OPERATION_WAIT_RETRIES):
             response = self.cloudformation_client.describe_stack_set_operation(
                 StackSetName=self.MASTER_ACCOUNT_PERMISSIONS_STACK_SET_NAME, OperationId=operation_id)
@@ -103,6 +133,12 @@ class Onboarder(object):
             time.sleep(self.STACK_OPERATION_WAIT_SLEEP)
 
     def delete_stack_instances(self) -> Dict:
+        """
+        Delete the stack instance.
+
+        :return: Response of the aws deletion command.
+        """
+
         logger.info(f"Deleting stack instance for StackSet: {self.MASTER_ACCOUNT_PERMISSIONS_STACK_SET_NAME}, "
                     f"region: {self.region_name}, AccountId: {self.customer_account_id}")
 
@@ -111,11 +147,23 @@ class Onboarder(object):
                                                                 Accounts=[self.customer_account_id])
         return response
 
-    def delete_stack_set(self):
+    def delete_stack_set(self) -> Dict:
+        """
+        Delete the stack set
+
+        :return: Response of the delete command.
+        """
+
         logger.info(f"Deleting StackSet: {self.MASTER_ACCOUNT_PERMISSIONS_STACK_SET_NAME}")
         return self.cloudformation_client.delete_stack_set(StackSetName=self.MASTER_ACCOUNT_PERMISSIONS_STACK_SET_NAME)
 
     def register_to_dome9(self) -> Dict:
+        """
+        Make API request to dome9 to lunch the onboarding.
+
+        :return: Response from Dome9 API
+        """
+
         dome9_client = Client()
         credentials = CloudAccountCredentials(arn=self.customer_account_new_role_arn, secret=self.customer_account_external_id)
         payload = CloudAccount(name=self.customer_account_name, credentials=credentials)
@@ -123,6 +171,12 @@ class Onboarder(object):
         return resp
 
     def create_stack_set_flow(self) -> None:
+        """
+        Handle stack set creation
+
+        :return:
+        """
+
         try:
             self.create_stack_set()
         except Exception as e:
@@ -130,13 +184,16 @@ class Onboarder(object):
                 logger.info(f"Received NameAlreadyExistsException for stack_set '{self.MASTER_ACCOUNT_PERMISSIONS_STACK_SET_NAME}'. Error: {repr(e)}")
                 self.delete_stack_instances()
                 time.sleep(20)
-                #self.delete_stack_set()
-                #time.sleep(30)
-                #self.create_stack_set()
             else:
                 raise
 
-    def execute_onboarding_flow(self):
+    def execute_onboarding_flow(self) -> Dict:
+        """
+        Execute the whole onboarding process.
+
+        :return:
+        """
+
         self.create_stack_set_flow()
         self.create_stack_instances()
         time.sleep(20)
@@ -144,15 +201,26 @@ class Onboarder(object):
         return register_result
 
 
-def lambda_handler(event, context):
+def lambda_handler(event: Dict, context: Dict) -> Dict:
+    """
+    Makes the magic happen.
+    Creates Dome9 protected account:
+    1) Creates needed infrastructure on the New Account's side.
+    2) Triggers automatic onboardig.
+
+    :param event: AWS lambda event
+    :param context: AWS lambda context
+    :return: Status
+    """
+
     logger.info(f"Event: {event}")
     logger.info(f"Context: {context}")
 
     event = event["detail"]
 
     logger.info(f"Event reported state: {event['serviceEventDetails']['createManagedAccountStatus']['state']}'")
-    onboarder = Onboarder(event["awsRegion"], event["serviceEventDetails"]["createManagedAccountStatus"]["account"]["accountId"], event["serviceEventDetails"]["createManagedAccountStatus"]["account"]["accountName"])
-    onboarding_result = onboarder.execute_onboarding_flow()
+    lmb_handler = LambdaHandler(event["awsRegion"], event["serviceEventDetails"]["createManagedAccountStatus"]["account"]["accountId"], event["serviceEventDetails"]["createManagedAccountStatus"]["account"]["accountName"])
+    onboarding_result = lmb_handler.execute_onboarding_flow()
 
     return {
         'statusCode': 200,
