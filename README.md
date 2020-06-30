@@ -18,8 +18,10 @@ Source code for AWS serverless application to automatically onboard AWS account 
 2. Login to your AWS Console
 3. Navigate to Lambda -> Create Function
 4. Select "Browse serverless app repository option"
-5. Type "dome9" and the search text box and make sure that "Show apps that create custom IAM roles or resource policies" is selected
-6. Select the application "dome9-automatic-onboarding"
-3. Fill the required fields `Dome9AccessId` and `Dome9SecretKey` with you keys from the previous step.
-4. Fill the `NotificationEmail` field. Any onboarding failures will be sent to this address
-5. Check all the checkboxes under `Capabilities and transforms`
+5. Check the "Show apps that create custom IAM roles or resource policies"
+6. Enter `dome9` inside the search input . 
+7. Click on "dome9-automatic-onboarding"
+8. Fill the required fields `Dome9AccessId` and `Dome9SecretKey` with you keys from previous steps.
+9. Fill the `NotificationEmail` field. Any onboarding failures will be sent to this address.
+10. Check the `I acknowledge that this app creates custom IAM roles.` (If appears) 
+11. Check all the checkboxes under `Capabilities and transforms` (If appears)
