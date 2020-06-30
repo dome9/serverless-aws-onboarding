@@ -4,7 +4,7 @@ Description: Serverless application for onboarding AWS account to Dome9
 Metadata:
   AWS::ServerlessRepo::Application:
     Name: dome9-automatic-onboarding
-    Description: Automatic onboarding flow triggered by account creation via ContrlTower
+    Description: Automatic onboarding flow triggered by account creation via ControlTower
     Author: SRE team
     SpdxLicenseId: Apache-2.0
     LicenseUrl: s3://test-control-tower-integration/86d3f3a95c324c9479bd8986968f4327
