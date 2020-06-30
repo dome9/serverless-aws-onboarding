@@ -77,18 +77,15 @@ class LambdaHandler(object):
             template_body = f.read()
 
         response = self.cloudformation_client.create_stack_set(
-            StackSetName=LambdaHandler.MASTER_ACCOUNT_PERMISSIONS_STACK_SET_NAME,
-            Description='Dome9 auto onboarding stack set',
-            TemplateBody=template_body,
-            Parameters=[{'ParameterKey': 'Externalid', 'ParameterValue': "Placeholder"},
-                        {'ParameterKey': 'AccountRoleName', 'ParameterValue': "Placeholder"}],
-            Capabilities=[
-                'CAPABILITY_IAM', 'CAPABILITY_NAMED_IAM', 'CAPABILITY_AUTO_EXPAND'
-            ],
-            AdministrationRoleARN=administrator_role_arn,
-            ExecutionRoleName=LambdaHandler.CUSTOMER_ACCOUNT_EXECUTION_ROLE_NAME
-        )
-
+                                                    StackSetName=LambdaHandler.MASTER_ACCOUNT_PERMISSIONS_STACK_SET_NAME,
+                                                    Description='Dome9 auto onboarding stack set',
+                                                    TemplateBody=template_body,
+                                                    Parameters=[{'ParameterKey': 'Externalid', 'ParameterValue': "Placeholder"},
+                                                    {'ParameterKey': 'AccountRoleName', 'ParameterValue': "Placeholder"}],
+                                                    Capabilities=[
+                                                    'CAPABILITY_IAM', 'CAPABILITY_NAMED_IAM', 'CAPABILITY_AUTO_EXPAND'],
+                                                    AdministrationRoleARN=administrator_role_arn,
+                                                    ExecutionRoleName=LambdaHandler.CUSTOMER_ACCOUNT_EXECUTION_ROLE_NAME)
         return response
 
     def create_stack_instances(self) -> None:
@@ -129,7 +126,8 @@ class LambdaHandler(object):
             if response["StackSetOperation"].get("Status") == "SUCCEEDED":
                 return response["StackSetOperation"]["StackSetId"]
 
-            logger.info(f"Current operation status {response['StackSetOperation'].get('Status')}, going to sleep for {self.STACK_OPERATION_WAIT_SLEEP}")
+            logger.info(f"Current operation status {response['StackSetOperation'].get('Status')}, "
+                        f"going to sleep for {self.STACK_OPERATION_WAIT_SLEEP}")
             time.sleep(self.STACK_OPERATION_WAIT_SLEEP)
 
     def delete_stack_instances(self) -> Dict:
@@ -167,8 +165,8 @@ class LambdaHandler(object):
         dome9_client = Client()
         credentials = CloudAccountCredentials(arn=self.customer_account_new_role_arn, secret=self.customer_account_external_id)
         payload = CloudAccount(name=self.customer_account_name, credentials=credentials)
-        resp = dome9_client.aws_cloud_account.create(body=payload)
-        return resp
+        response = dome9_client.aws_cloud_account.create(body=payload)
+        return response
 
     def create_stack_set_flow(self) -> None:
         """
@@ -213,13 +211,12 @@ def lambda_handler(event: Dict, context: Dict) -> Dict:
     :return: Status
     """
 
-    logger.info(f"Event: {event}")
-    logger.info(f"Context: {context}")
-
     event = event["detail"]
 
     logger.info(f"Event reported state: {event['serviceEventDetails']['createManagedAccountStatus']['state']}'")
-    lmb_handler = LambdaHandler(event["awsRegion"], event["serviceEventDetails"]["createManagedAccountStatus"]["account"]["accountId"], event["serviceEventDetails"]["createManagedAccountStatus"]["account"]["accountName"])
+    lmb_handler = LambdaHandler(event["awsRegion"],
+                                event["serviceEventDetails"]["createManagedAccountStatus"]["account"]["accountId"],
+                                event["serviceEventDetails"]["createManagedAccountStatus"]["account"]["accountName"])
     onboarding_result = lmb_handler.execute_onboarding_flow()
 
     return {
