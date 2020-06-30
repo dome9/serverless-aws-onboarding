@@ -21,7 +21,7 @@ class LambdaHandler(object):
     STACK_OPERATION_WAIT_SLEEP = 10
 
     def __init__(self, region_name: str, customer_account_id: str, customer_account_name: str, readonly: bool = True) -> None:
-        logger.info(f"Initing onboarder with region_name: '{region_name}', customer_account_id: '{customer_account_id}', customer_account_name: '{customer_account_name}'")
+        logger.info(f'''Init LambdaHandler with region_name: '{region_name}', customer_account_id: '{customer_account_id}', customer_account_name: '{customer_account_name}''''')
         self.region_name = region_name
         self.customer_account_id = customer_account_id
         self.master_account_id = self.retrieve_master_account_id()
@@ -33,9 +33,9 @@ class LambdaHandler(object):
 
         self.cloudformation_client = boto3.client("cloudformation")
         if readonly:
-            self.user_side_stack_cf_filename = "user_side_stack.yaml"
+            self.user_side_stack_cf_filename = "user_side_stack_ro.yaml"
         else:
-            self.user_side_stack_cf_filename = "user_side_stack.yaml"
+            self.user_side_stack_cf_filename = "user_side_stack_full.yaml"
 
     @staticmethod
     def retrieve_master_account_id() -> str:
