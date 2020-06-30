@@ -6,20 +6,21 @@ import logging
 from dome9_type_annotations.client import Client
 from resources.aws_cloud_account import CloudAccount, CloudAccountCredentials
 from uuid import uuid4
-
+from typing import Dict
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 
 class Onboarder(object):
+
     MASTER_ACCOUNT_PERMISSIONS_STACK_SET_NAME = 'Dome9AutomaticOnboardigStackSet'
     CUSTOMER_ACCOUNT_EXECUTION_ROLE_NAME = "AWSControlTowerExecution"
     MASTER_ACCOUNT_STACK_SET_ROLE = "service-role/AWSControlTowerStackSetRole"
     STACK_OPERATION_WAIT_RETRIES = 12
     STACK_OPERATION_WAIT_SLEEP = 10
 
-    def __init__(self, region_name, customer_account_id, customer_account_name, readonly=True):
+    def __init__(self, region_name: str, customer_account_id: str, customer_account_name: str, readonly: bool = True) -> None:
         logger.info(f"Initing onboarder with region_name: '{region_name}', customer_account_id: '{customer_account_id}', customer_account_name: '{customer_account_name}'")
         self.region_name = region_name
         self.customer_account_id = customer_account_id
@@ -37,16 +38,16 @@ class Onboarder(object):
             self.user_side_stack_cf_filename = "user_side_stack.yaml"
 
     @staticmethod
-    def retrieve_master_account_id():
+    def retrieve_master_account_id() -> str:
         sts_client = boto3.client('sts')
         response = sts_client.get_caller_identity()
         return response.get("Account")
 
     @staticmethod
-    def generate_external_id():
+    def generate_external_id() -> str:
         return str(uuid4())[:8]
 
-    def create_stack_set(self):
+    def create_stack_set(self) -> Dict:
         administrator_role_arn = f"arn:aws:iam::{self.master_account_id}:role/{self.MASTER_ACCOUNT_STACK_SET_ROLE}"
 
         logger.info(f"Creating StackSet: {self.MASTER_ACCOUNT_PERMISSIONS_STACK_SET_NAME}, "
@@ -72,7 +73,7 @@ class Onboarder(object):
 
         return response
 
-    def create_stack_instances(self):
+    def create_stack_instances(self) -> None:
         logger.info(f"Creating stack instance for StackSet: {self.MASTER_ACCOUNT_PERMISSIONS_STACK_SET_NAME}, "
                     f"region: {self.region_name}, AccountId: {self.customer_account_id}, "
                     f"NewRoleName {self.customer_account_new_role_name}")
@@ -90,9 +91,7 @@ class Onboarder(object):
 
         self.wait_for_stack_operation(response["OperationId"])
 
-        return True
-
-    def wait_for_stack_operation(self, operation_id):
+    def wait_for_stack_operation(self, operation_id: str) -> None:
         for retry_count in range(self.STACK_OPERATION_WAIT_RETRIES):
             response = self.cloudformation_client.describe_stack_set_operation(
                 StackSetName=self.MASTER_ACCOUNT_PERMISSIONS_STACK_SET_NAME, OperationId=operation_id)
@@ -103,7 +102,7 @@ class Onboarder(object):
             logger.info(f"Current operation status {response['StackSetOperation'].get('Status')}, going to sleep for {self.STACK_OPERATION_WAIT_SLEEP}")
             time.sleep(self.STACK_OPERATION_WAIT_SLEEP)
 
-    def delete_stack_instances(self):
+    def delete_stack_instances(self) -> Dict:
         logger.info(f"Deleting stack instance for StackSet: {self.MASTER_ACCOUNT_PERMISSIONS_STACK_SET_NAME}, "
                     f"region: {self.region_name}, AccountId: {self.customer_account_id}")
 
@@ -116,14 +115,14 @@ class Onboarder(object):
         logger.info(f"Deleting StackSet: {self.MASTER_ACCOUNT_PERMISSIONS_STACK_SET_NAME}")
         return self.cloudformation_client.delete_stack_set(StackSetName=self.MASTER_ACCOUNT_PERMISSIONS_STACK_SET_NAME)
 
-    def register_to_dome9(self):
+    def register_to_dome9(self) -> Dict:
         dome9_client = Client()
         credentials = CloudAccountCredentials(arn=self.customer_account_new_role_arn, secret=self.customer_account_external_id)
         payload = CloudAccount(name=self.customer_account_name, credentials=credentials)
         resp = dome9_client.aws_cloud_account.create(body=payload)
         return resp
 
-    def create_stack_set_flow(self):
+    def create_stack_set_flow(self) -> None:
         try:
             self.create_stack_set()
         except Exception as e:
@@ -138,12 +137,11 @@ class Onboarder(object):
                 raise
 
     def execute_onboarding_flow(self):
-        return_value = ""
         self.create_stack_set_flow()
         self.create_stack_instances()
         time.sleep(20)
-        self.register_to_dome9()
-        return return_value
+        register_result = self.register_to_dome9()
+        return register_result
 
 
 def lambda_handler(event, context):
