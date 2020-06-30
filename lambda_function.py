@@ -21,7 +21,10 @@ class LambdaHandler(object):
     STACK_OPERATION_WAIT_SLEEP = 10
 
     def __init__(self, region_name: str, customer_account_id: str, customer_account_name: str, readonly: bool = True) -> None:
-        logger.info(f'''Init LambdaHandler with region_name: '{region_name}', customer_account_id: '{customer_account_id}', customer_account_name: '{customer_account_name}''''')
+
+        logger.info(f"Init LambdaHandler with region_name: '{region_name}', "
+                    f"customer_account_id: '{customer_account_id}', customer_account_name: '{customer_account_name}'")
+
         self.region_name = region_name
         self.customer_account_id = customer_account_id
         self.master_account_id = self.retrieve_master_account_id()
@@ -45,7 +48,7 @@ class LambdaHandler(object):
         :return: Account name
         """
 
-        sts_client = boto3.client('sts')
+        sts_client = boto3.client("sts")
         response = sts_client.get_caller_identity()
         return response.get("Account")
 
@@ -78,12 +81,12 @@ class LambdaHandler(object):
 
         response = self.cloudformation_client.create_stack_set(
                                                     StackSetName=LambdaHandler.MASTER_ACCOUNT_PERMISSIONS_STACK_SET_NAME,
-                                                    Description='Dome9 auto onboarding stack set',
+                                                    Description="Dome9 auto onboarding stack set",
                                                     TemplateBody=template_body,
-                                                    Parameters=[{'ParameterKey': 'Externalid', 'ParameterValue': "Placeholder"},
-                                                    {'ParameterKey': 'AccountRoleName', 'ParameterValue': "Placeholder"}],
+                                                    Parameters=[{"ParameterKey": "Externalid", "ParameterValue": "Placeholder"},
+                                                    {"ParameterKey": "AccountRoleName", "ParameterValue": "Placeholder"}],
                                                     Capabilities=[
-                                                    'CAPABILITY_IAM', 'CAPABILITY_NAMED_IAM', 'CAPABILITY_AUTO_EXPAND'],
+                                                    "CAPABILITY_IAM", "CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND"],
                                                     AdministrationRoleARN=administrator_role_arn,
                                                     ExecutionRoleName=LambdaHandler.CUSTOMER_ACCOUNT_EXECUTION_ROLE_NAME)
         return response
@@ -102,11 +105,11 @@ class LambdaHandler(object):
             StackSetName=self.MASTER_ACCOUNT_PERMISSIONS_STACK_SET_NAME,
             Accounts=[self.customer_account_id],
             Regions=[self.region_name],
-            ParameterOverrides=[{'ParameterKey': 'AccountRoleName', 'ParameterValue': self.customer_account_new_role_name},
-                                {'ParameterKey': 'Externalid', 'ParameterValue': self.customer_account_external_id}],
+            ParameterOverrides=[{"ParameterKey": "AccountRoleName", "ParameterValue": self.customer_account_new_role_name},
+                                {"ParameterKey": "Externalid", "ParameterValue": self.customer_account_external_id}],
             OperationPreferences={
-                'FailureToleranceCount': 0,
-                'MaxConcurrentCount': 3,
+                "FailureToleranceCount": 0,
+                "MaxConcurrentCount": 3,
             })
 
         self.wait_for_stack_operation(response["OperationId"])
@@ -212,15 +215,19 @@ def lambda_handler(event: Dict, context: Dict) -> Dict:
     """
 
     event = event["detail"]
+    event_state = event["serviceEventDetails"]["createManagedAccountStatus"]["state"]
+    aws_region = event["awsRegion"]
+    new_account_id = event["serviceEventDetails"]["createManagedAccountStatus"]["account"]["accountId"]
+    new_account_name = event["serviceEventDetails"]["createManagedAccountStatus"]["account"]["accountName"]
 
-    logger.info(f"Event reported state: {event['serviceEventDetails']['createManagedAccountStatus']['state']}'")
-    lmb_handler = LambdaHandler(event["awsRegion"],
-                                event["serviceEventDetails"]["createManagedAccountStatus"]["account"]["accountId"],
-                                event["serviceEventDetails"]["createManagedAccountStatus"]["account"]["accountName"])
+    logger.info(f"Event reported state: '{event_state}'")
+
+    lmb_handler = LambdaHandler(aws_region, new_account_id, new_account_name)
+
     onboarding_result = lmb_handler.execute_onboarding_flow()
 
     return {
-        'statusCode': 200,
-        'body': json.dumps(f'{onboarding_result} Created stack-set')
+        "statusCode": 200,
+        "body": json.dumps(f"{onboarding_result} Created stack-set")
     }
 
