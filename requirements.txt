@@ -1,0 +1,2 @@
+git+https://github.com/dome9/dome9-sdk-python
+boto3
