@@ -189,6 +189,8 @@ class LambdaHandler(object):
                                               secret=self.customer_account_external_id)
         payload = CloudAccount(name=self.customer_account_name, credentials=credentials)
         response = dome9_client.aws_cloud_account.create(body=payload)
+        logger.info(f"Received reply from dome9 API: {response}")
+
         return response
 
     def create_stack_set_flow(self) -> None:
