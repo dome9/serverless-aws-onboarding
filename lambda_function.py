@@ -12,15 +12,19 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 
-class LambdaHandler(object):
+class OperationFailedError(Exception):
+    pass
 
+
+class LambdaHandler(object):
     MASTER_ACCOUNT_PERMISSIONS_STACK_SET_NAME = 'Dome9AutomaticOnboardingStackSet'
     CUSTOMER_ACCOUNT_EXECUTION_ROLE_NAME = "AWSControlTowerExecution"
     MASTER_ACCOUNT_STACK_SET_ROLE = "service-role/AWSControlTowerStackSetRole"
-    STACK_OPERATION_WAIT_RETRIES = 12
-    STACK_OPERATION_WAIT_SLEEP = 10
+    STACK_OPERATION_WAIT_RETRIES = 60  # 5 minutes
+    STACK_OPERATION_WAIT_SLEEP = 5
 
-    def __init__(self, region_name: str, customer_account_id: str, customer_account_name: str, readonly: bool = True) -> None:
+    def __init__(self, region_name: str, customer_account_id: str, customer_account_name: str,
+                 readonly: bool = True) -> None:
 
         logger.info(f"Init LambdaHandler with region_name: '{region_name}', "
                     f"customer_account_id: '{customer_account_id}', customer_account_name: '{customer_account_name}'")
@@ -80,15 +84,15 @@ class LambdaHandler(object):
             template_body = f.read()
 
         response = self.cloudformation_client.create_stack_set(
-                                                    StackSetName=LambdaHandler.MASTER_ACCOUNT_PERMISSIONS_STACK_SET_NAME,
-                                                    Description="Dome9 auto onboarding stack set",
-                                                    TemplateBody=template_body,
-                                                    Parameters=[{"ParameterKey": "Externalid", "ParameterValue": "Placeholder"},
-                                                    {"ParameterKey": "AccountRoleName", "ParameterValue": "Placeholder"}],
-                                                    Capabilities=[
-                                                    "CAPABILITY_IAM", "CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND"],
-                                                    AdministrationRoleARN=administrator_role_arn,
-                                                    ExecutionRoleName=LambdaHandler.CUSTOMER_ACCOUNT_EXECUTION_ROLE_NAME)
+            StackSetName=LambdaHandler.MASTER_ACCOUNT_PERMISSIONS_STACK_SET_NAME,
+            Description="Dome9 auto onboarding stack set",
+            TemplateBody=template_body,
+            Parameters=[{"ParameterKey": "Externalid", "ParameterValue": "Placeholder"},
+                        {"ParameterKey": "AccountRoleName", "ParameterValue": "Placeholder"}],
+            Capabilities=[
+                "CAPABILITY_IAM", "CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND"],
+            AdministrationRoleARN=administrator_role_arn,
+            ExecutionRoleName=LambdaHandler.CUSTOMER_ACCOUNT_EXECUTION_ROLE_NAME)
         return response
 
     def create_stack_instances(self) -> None:
@@ -105,35 +109,48 @@ class LambdaHandler(object):
             StackSetName=self.MASTER_ACCOUNT_PERMISSIONS_STACK_SET_NAME,
             Accounts=[self.customer_account_id],
             Regions=[self.region_name],
-            ParameterOverrides=[{"ParameterKey": "AccountRoleName", "ParameterValue": self.customer_account_new_role_name},
-                                {"ParameterKey": "Externalid", "ParameterValue": self.customer_account_external_id}],
+            ParameterOverrides=[
+                {"ParameterKey": "AccountRoleName", "ParameterValue": self.customer_account_new_role_name},
+                {"ParameterKey": "Externalid", "ParameterValue": self.customer_account_external_id}],
             OperationPreferences={
                 "FailureToleranceCount": 0,
                 "MaxConcurrentCount": 3,
             })
 
-        self.wait_for_stack_operation(response["OperationId"])
+        self.wait_for_stack_operation(response["OperationId"], "create_stack_instances")
 
-    def wait_for_stack_operation(self, operation_id: str) -> None:
+    def wait_for_stack_operation(self, operation_id: str, operation_name: str) -> None:
         """
         Wait for operation to complete.
 
+        :param operation_name: Name used for logging
         :param operation_id: The operation id to wait for
         :return: None
 
         """
+
         for retry_count in range(self.STACK_OPERATION_WAIT_RETRIES):
-            response = self.cloudformation_client.describe_stack_set_operation(
-                StackSetName=self.MASTER_ACCOUNT_PERMISSIONS_STACK_SET_NAME, OperationId=operation_id)
+            current_status = "FAILED_TO_FETCH"
+            try:
+                response = self.cloudformation_client.describe_stack_set_operation(
+                    StackSetName=self.MASTER_ACCOUNT_PERMISSIONS_STACK_SET_NAME, OperationId=operation_id)
+                current_status = response.get('StackSetOperation').get('Status')
+            except Exception as e:
+                logger.error(f"Failed to fetch operation's {operation_name} status {current_status}")
 
-            if response["StackSetOperation"].get("Status") == "SUCCEEDED":
-                return response["StackSetOperation"]["StackSetId"]
+            logger.info(f"Current operation: '{operation_name}' Status: {current_status}")
 
-            logger.info(f"Current operation status {response['StackSetOperation'].get('Status')}, "
-                        f"going to sleep for {self.STACK_OPERATION_WAIT_SLEEP}")
+            if current_status == "SUCCEEDED":
+                return
+            elif current_status == "FAILED":
+                raise OperationFailedError(f"Operation {operation_name} failed to complete! "
+                                           f"Check 'cloudformation' StackSet '{self.MASTER_ACCOUNT_PERMISSIONS_STACK_SET_NAME}' for more information")
+
+            logger.info(f"Going to sleep for {self.STACK_OPERATION_WAIT_SLEEP} seconds")
+
             time.sleep(self.STACK_OPERATION_WAIT_SLEEP)
 
-    def delete_stack_instances(self) -> Dict:
+    def delete_stack_instances(self) -> None:
         """
         Delete the stack instance.
 
@@ -143,10 +160,12 @@ class LambdaHandler(object):
         logger.info(f"Deleting stack instance for StackSet: {self.MASTER_ACCOUNT_PERMISSIONS_STACK_SET_NAME}, "
                     f"region: {self.region_name}, AccountId: {self.customer_account_id}")
 
-        response = self.cloudformation_client.delete_stack_instances(StackSetName=self.MASTER_ACCOUNT_PERMISSIONS_STACK_SET_NAME,
-                                                                Regions=[self.region_name], RetainStacks=True,
-                                                                Accounts=[self.customer_account_id])
-        return response
+        response = self.cloudformation_client.delete_stack_instances(
+            StackSetName=self.MASTER_ACCOUNT_PERMISSIONS_STACK_SET_NAME,
+            Regions=[self.region_name], RetainStacks=True,
+            Accounts=[self.customer_account_id])
+
+        self.wait_for_stack_operation(response.get("OperationId"), "delete_stack_instances")
 
     def delete_stack_set(self) -> Dict:
         """
@@ -166,7 +185,8 @@ class LambdaHandler(object):
         """
 
         dome9_client = Client()
-        credentials = CloudAccountCredentials(arn=self.customer_account_new_role_arn, secret=self.customer_account_external_id)
+        credentials = CloudAccountCredentials(arn=self.customer_account_new_role_arn,
+                                              secret=self.customer_account_external_id)
         payload = CloudAccount(name=self.customer_account_name, credentials=credentials)
         response = dome9_client.aws_cloud_account.create(body=payload)
         return response
@@ -182,9 +202,9 @@ class LambdaHandler(object):
             self.create_stack_set()
         except Exception as e:
             if "NameAlreadyExistsException" in repr(e):
-                logger.info(f"Received NameAlreadyExistsException for stack_set '{self.MASTER_ACCOUNT_PERMISSIONS_STACK_SET_NAME}'. Error: {repr(e)}")
+                logger.error(
+                    f"Received NameAlreadyExistsException for stack_set '{self.MASTER_ACCOUNT_PERMISSIONS_STACK_SET_NAME}'. Error: {repr(e)}")
                 self.delete_stack_instances()
-                time.sleep(20)
             else:
                 raise
 
@@ -197,7 +217,6 @@ class LambdaHandler(object):
 
         self.create_stack_set_flow()
         self.create_stack_instances()
-        time.sleep(20)
         register_result = self.register_to_dome9()
         return register_result
 
