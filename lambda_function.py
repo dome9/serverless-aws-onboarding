@@ -199,7 +199,7 @@ class LambdaHandler(object):
         try:
             response = self.cloudformation_client.delete_stack_instances(
                 StackSetName=self.MASTER_ACCOUNT_PERMISSIONS_STACK_SET_NAME,
-                Regions=[self.region_name], RetainStacks=True,
+                Regions=[self.region_name], RetainStacks=False,
                 Accounts=[self.customer_account_id])
         except Exception as e:
             logger.warning(f"Stack instance deletion failed with error: {repr(e)}. "
@@ -262,9 +262,15 @@ class LambdaHandler(object):
 
         self.create_stack_set_flow()
         self.create_stack_instances()
-        register_result = self.register_to_dome9()
-        return register_result
+        try:
+            register_result = self.register_to_dome9()
+            return {"Status": f"Onboarding finished. Received reply from Dome9: {str(register_result)}"}
+        except Exception as e:
+            logger.error(f"An error '{repr(e)}' occurred in the onboarding process. Aborting the flow. "
+                         f"Going to delete the StackInstance")
+            self.delete_stack_instances()
 
+        return {"Status": "Failure"}
 
 def lambda_handler(event: Dict, context: Dict) -> Dict:
     """
