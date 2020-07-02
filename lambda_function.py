@@ -2,6 +2,7 @@ import json
 import boto3
 import time
 import logging
+import base64
 
 from dome9_type_annotations.client import Client
 from resources.aws_cloud_account import CloudAccount, CloudAccountCredentials
@@ -22,6 +23,7 @@ class LambdaHandler(object):
     MASTER_ACCOUNT_STACK_SET_ROLE = "service-role/AWSControlTowerStackSetRole"
     STACK_OPERATION_WAIT_RETRIES = 60  # 5 minutes
     STACK_OPERATION_WAIT_SLEEP = 5
+    DOME9_SECRET_NAME = "Dome9ApiKeys"
 
     def __init__(self, region_name: str, customer_account_id: str, customer_account_name: str,
                  readonly: bool = True) -> None:
@@ -41,7 +43,15 @@ class LambdaHandler(object):
         self.customer_account_new_role_arn = f"arn:aws:iam::{self.customer_account_id}:role/{self.customer_account_new_role_name}"
         self.customer_account_external_id = self.generate_external_id()
 
-        self.cloudformation_client = boto3.client("cloudformation")
+        # Create a CloudFormation client
+        self.cloudformation_client = boto3.client(
+            service_name="cloudformation",
+            region_name=self.region_name)
+        # Create a Secrets Manager client
+        self.secret_manager_client = boto3.client(
+            service_name='secretsmanager',
+            region_name=self.region_name)
+
         if readonly:
             self.user_side_stack_cf_filename = "user_side_stack_ro.yaml"
         else:
@@ -68,6 +78,29 @@ class LambdaHandler(object):
         """
 
         return str(uuid4())[:8]
+
+    def get_secret(self) -> Dict:
+        """
+        Get Dome9 AccessId and Secret for API authentication
+
+        :return:
+        """
+
+        try:
+            logger.info("Getting Dome9 API credentials from AWS SecretManager")
+            secret_value_response = self.secret_manager_client.get_secret_value(
+                SecretId=LambdaHandler.DOME9_SECRET_NAME
+            )
+        except Exception as e:
+            logger.error(f"Could not get secret value for SecretId: {LambdaHandler.DOME9_SECRET_NAME}")
+            raise
+        else:
+            if 'SecretString' in secret_value_response:
+                secret = secret_value_response['SecretString']
+                return json.loads(secret)
+            
+            decoded_binary_secret = base64.b64decode(secret_value_response['SecretBinary'])
+            return json.loads(decoded_binary_secret)
 
     def create_stack_set(self) -> Dict:
         """
@@ -191,8 +224,8 @@ class LambdaHandler(object):
 
         :return: Response from Dome9 API
         """
-
-        dome9_client = Client()
+        dome9_api_keys = self.get_secret()
+        dome9_client = Client(access_id=dome9_api_keys['AccessId'], secret_key=dome9_api_keys['Secret'])
         credentials = CloudAccountCredentials(arn=self.customer_account_new_role_arn,
                                               secret=self.customer_account_external_id)
         payload = CloudAccount(name=self.customer_account_name, credentials=credentials)

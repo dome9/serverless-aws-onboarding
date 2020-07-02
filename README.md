@@ -10,6 +10,7 @@ Source code for AWS serverless application to automatically onboard AWS accounts
 ## What's included
 - Lambda function for onboarding automation
 - EventBridge rule (configured to "listen" to `CreateMenagedAccount` lifecycle event)
+- Secret Manager's secret for storing API credentials 
 - CloudWatch Alarm (lambda failures)
 - SNS topic for email notifications (subscription confirmation email will be sent)
 
