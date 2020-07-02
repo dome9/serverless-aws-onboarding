@@ -88,19 +88,19 @@ class LambdaHandler(object):
 
         try:
             logger.info("Getting Dome9 API credentials from AWS SecretManager")
-            get_secret_value_response = self.secret_manager_client.get_secret_value(
+            secret_value_response = self.secret_manager_client.get_secret_value(
                 SecretId=LambdaHandler.DOME9_SECRET_NAME
             )
         except Exception as e:
             logger.error(f"Could not get secret value for SecretId: {LambdaHandler.DOME9_SECRET_NAME}")
-            raise e
+            raise
         else:
-            if 'SecretString' in get_secret_value_response:
-                secret = get_secret_value_response['SecretString']
+            if 'SecretString' in secret_value_response:
+                secret = secret_value_response['SecretString']
                 return json.loads(secret)
-            else:
-                decoded_binary_secret = base64.b64decode(get_secret_value_response['SecretBinary'])
-                return json.loads(decoded_binary_secret)
+            
+            decoded_binary_secret = base64.b64decode(secret_value_response['SecretBinary'])
+            return json.loads(decoded_binary_secret)
 
     def create_stack_set(self) -> Dict:
         """
