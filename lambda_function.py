@@ -29,6 +29,9 @@ class LambdaHandler(object):
         logger.info(f"Init LambdaHandler with region_name: '{region_name}', "
                     f"customer_account_id: '{customer_account_id}', customer_account_name: '{customer_account_name}'")
 
+        if not customer_account_id.isnumeric():
+            raise ValueError(f"Customer Account ID should be Numeric value. E.g. '12345678'. Received: {str(customer_account_id)}")
+
         self.region_name = region_name
         self.customer_account_id = customer_account_id
         self.master_account_id = self.retrieve_master_account_id()
@@ -241,7 +244,7 @@ def lambda_handler(event: Dict, context: Dict) -> Dict:
     new_account_id = event["serviceEventDetails"]["createManagedAccountStatus"]["account"]["accountId"]
     new_account_name = event["serviceEventDetails"]["createManagedAccountStatus"]["account"]["accountName"]
 
-    logger.info(f"Event reported state: '{event_state}'")
+    logger.info(f"Triggered by ControlTower event. Event correct state: 'SUCCESS'. Reported state: '{event_state}'")
 
     lmb_handler = LambdaHandler(aws_region, new_account_id, new_account_name)
 
