@@ -21,22 +21,12 @@ Parameters:
   Dome9AccessId:
     Type: String
     Default: "ACCESS_ID"
+    NoEcho: true
   Dome9SecretKey:
     Type: String
     Default: "SECRET_KEY"
+    NoEcho: true
 
-#Mappings:
-#  S3perRegion:
-#    us-east-1:
-#      NAME: marketplace-sa-resources-ct-us-east-1
-#    us-east-2:
-#      NAME: marketplace-sa-resources-ct-us-east-2
-#    us-west-2:
-#      NAME: marketplace-sa-resources-ct-us-west-2
-#    eu-west-1:
-#      NAME: marketplace-sa-resources-ct-eu-west-1
-#    ap-southeast-2:
-#      NAME: marketplace-sa-resources-ct-ap-southeast-2
 Resources:
   Dome9AutomationLambda:
     Type: 'AWS::Serverless::Function'
@@ -44,9 +34,6 @@ Resources:
       Handler: lambda_function.lambda_handler
       Runtime: python3.7
       CodeUri: .
-#      Code:
-#        S3Bucket: !FindInMap [ S3perRegion, !Ref "AWS::Region", NAME ]
-#        S3Key: ct_batchcreation_lambda.zip
       Description: A starter AWS Lambda function.
       MemorySize: 128
       Timeout: 300
@@ -65,33 +52,15 @@ Resources:
                   - CreateManagedAccount
       Tags:
         'Name': "CreateManagedAccountDome9Automation"
-      Environment:
-        Variables:
-          PRINCIPAL_ARN: !GetAtt Dome9AutomationLambdaRole.Arn
-          DOME9_ACCESS_ID: !Ref Dome9AccessId
-          DOME9_SECRET_KEY: !Ref Dome9SecretKey
 
-#  CaptureControlTowerLifeCycleEvents:
-#    Type: 'AWS::Events::Rule'
-#    Properties:
-#      Description: Capture Control Tower LifeCycle Events and Trigger an Action
-#      EventPattern:
-#        detail:
-#          eventName:
-#            - CreateManagedAccount
-#          eventSource:
-#            - controltower.amazonaws.com
-#        detail-type:
-#          - AWS Service Event via CloudTrail
-#        source:
-#          - aws.controltower
-#      State: ENABLED
-#      Targets:
-#        - Arn: !GetAtt CreateManagedAccountLambda.Arn
-#          Id: IDCaptureControlTowerLifeCycleEvents
-#    Metadata:
-#      'AWS::CloudFormation::Designer':
-#        id: a24b1fa7-d094-4467-ac96-4671257de26e
+  Dome9ApiKeys:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: String
+      Name: Dome9ApiKeys
+      SecretString:
+        !Sub '{"AccessId":"${Dome9AccessId}","Secret":"${Dome9SecretKey}"}'
+
   Dome9AutomationLambdaRole:
     Type: 'AWS::IAM::Role'
     Properties:
@@ -143,7 +112,6 @@ Resources:
                 Resource: arn:aws:secretsmanager:*:*:secret:Dome9ApiKeys-*
       ManagedPolicyArns:
         - 'arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
-
   Dome9AutomationLambdaAlarmTopic:
     Type: 'AWS::SNS::Topic'
     Properties:
