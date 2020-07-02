@@ -1,4 +1,4 @@
-![Dome9 Logo](https://dome9.com/wp-content/uploads/2018/12/Dome9_Grey.png)
+![Dome9 Logo](https://secure.dome9.com/v2/assets/images/cloud-guard/cloud-guard-logo.svg)
 
 # CloudGuard Dome9 Automatic onboarding application
 Source code for AWS serverless application to automatically onboard AWS account to Dome9 when a new account is created using AWS ControlTower service
