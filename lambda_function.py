@@ -29,6 +29,9 @@ class LambdaHandler(object):
         logger.info(f"Init LambdaHandler with region_name: '{region_name}', "
                     f"customer_account_id: '{customer_account_id}', customer_account_name: '{customer_account_name}'")
 
+        if not customer_account_id.isnumeric():
+            raise ValueError(f"Customer Account ID should be Numeric value. E.g. '12345678'. Received: {str(customer_account_id)}")
+
         self.region_name = region_name
         self.customer_account_id = customer_account_id
         self.master_account_id = self.retrieve_master_account_id()
@@ -160,10 +163,15 @@ class LambdaHandler(object):
         logger.info(f"Deleting stack instance for StackSet: {self.MASTER_ACCOUNT_PERMISSIONS_STACK_SET_NAME}, "
                     f"region: {self.region_name}, AccountId: {self.customer_account_id}")
 
-        response = self.cloudformation_client.delete_stack_instances(
-            StackSetName=self.MASTER_ACCOUNT_PERMISSIONS_STACK_SET_NAME,
-            Regions=[self.region_name], RetainStacks=True,
-            Accounts=[self.customer_account_id])
+        try:
+            response = self.cloudformation_client.delete_stack_instances(
+                StackSetName=self.MASTER_ACCOUNT_PERMISSIONS_STACK_SET_NAME,
+                Regions=[self.region_name], RetainStacks=True,
+                Accounts=[self.customer_account_id])
+        except Exception as e:
+            logger.warning(f"Stack instance deletion failed with error: {repr(e)}. "
+                           f"Possibly this stack instance already exists.")
+            return
 
         self.wait_for_stack_operation(response.get("OperationId"), "delete_stack_instances")
 
@@ -202,10 +210,12 @@ class LambdaHandler(object):
 
         try:
             self.create_stack_set()
+            logger.info(f"StackSet '{self.MASTER_ACCOUNT_PERMISSIONS_STACK_SET_NAME}' created")
         except Exception as e:
-            if "NameAlreadyExistsException" in repr(e):
-                logger.error(
-                    f"Received NameAlreadyExistsException for stack_set '{self.MASTER_ACCOUNT_PERMISSIONS_STACK_SET_NAME}'. Error: {repr(e)}")
+            repr_e_lower = repr(e).lower()
+            if "already" in repr_e_lower and "exists" in repr_e_lower:
+                logger.warning(
+                    f"StackSet '{self.MASTER_ACCOUNT_PERMISSIONS_STACK_SET_NAME}' already exists. Skipping this step.")
                 self.delete_stack_instances()
             else:
                 raise
@@ -241,7 +251,7 @@ def lambda_handler(event: Dict, context: Dict) -> Dict:
     new_account_id = event["serviceEventDetails"]["createManagedAccountStatus"]["account"]["accountId"]
     new_account_name = event["serviceEventDetails"]["createManagedAccountStatus"]["account"]["accountName"]
 
-    logger.info(f"Event reported state: '{event_state}'")
+    logger.info(f"Triggered by ControlTower event. Event correct state: 'SUCCESS'. Reported state: '{event_state}'")
 
     lmb_handler = LambdaHandler(aws_region, new_account_id, new_account_name)
 
