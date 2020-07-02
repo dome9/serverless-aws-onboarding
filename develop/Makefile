@@ -5,7 +5,7 @@ BUILT_TEMPLATE=${SAM_DIR}/build/template.yaml
 PACKAGED_FILE=${SAM_DIR}/build/packaged.yaml
 S3_BUCKET_NAME=test-control-tower-integration
 AWS_REGION=us-east-1
-PROFILE=control-tower-integration-alexey
+PROFILE=control-tower-integration
 
 # Package and deploy the application
 publish:
