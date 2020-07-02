@@ -1,0 +1,36 @@
+{"detail":
+{
+    "eventVersion": "1.05",
+    "userIdentity": {
+        "accountId": "822386559673",
+        "invokedBy": "AWS Internal"
+    },
+    "eventTime": "2020-06-28T13:27:40Z",
+    "eventSource": "controltower.amazonaws.com",
+    "eventName": "CreateManagedAccount",
+    "awsRegion": "us-east-1",
+    "sourceIPAddress": "AWS Internal",
+    "userAgent": "AWS Internal",
+    "requestParameters": null,
+    "responseElements": null,
+    "eventID": "c062d919-2618-4775-9170-8183963d122b",
+    "readOnly": false,
+    "eventType": "AwsServiceEvent",
+    "recipientAccountId": "822386559673",
+    "serviceEventDetails": {
+        "createManagedAccountStatus": {
+            "organizationalUnit": {
+                "organizationalUnitName": "Custom",
+                "organizationalUnitId": "ou-24vp-prijro3n"
+            },
+            "account": {
+                "accountName": "SubZero11",
+                "accountId": "421076510465"
+            },
+            "state": "SUCCEEDED",
+            "message": "AWS Control Tower successfully created a managed account.",
+            "requestedTimestamp": "2020-06-28T12:58:58+0000",
+            "completedTimestamp": "2020-06-28T13:27:40+0000"
+        }
+    }
+}}
