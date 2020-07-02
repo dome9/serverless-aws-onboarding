@@ -284,7 +284,11 @@ def lambda_handler(event: Dict, context: Dict) -> Dict:
     new_account_id = event["serviceEventDetails"]["createManagedAccountStatus"]["account"]["accountId"]
     new_account_name = event["serviceEventDetails"]["createManagedAccountStatus"]["account"]["accountName"]
 
-    logger.info(f"Triggered by ControlTower event. Event correct state: 'SUCCESS'. Reported state: '{event_state}'")
+    logger.info(f"Starting onboarding process to CloudGuard Dome9 triggered by ControlTower event")
+
+    if event_state != "SUCCESS":
+        logger.info(f"Event state should be: 'SUCCESS'. Reported state: '{event_state}'")
+        raise Exception("Account enroll failed. Check ControlTower logs in CloudTrail for more information")
 
     lmb_handler = LambdaHandler(aws_region, new_account_id, new_account_name)
 
