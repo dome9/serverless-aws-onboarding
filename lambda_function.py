@@ -272,6 +272,7 @@ class LambdaHandler(object):
 
         return {"Status": "Failure"}
 
+
 def lambda_handler(event: Dict, context: Dict) -> Dict:
     """
     Makes the magic happen.
