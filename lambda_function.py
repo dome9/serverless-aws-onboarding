@@ -113,7 +113,7 @@ class LambdaHandler(object):
                     f"customer_account_external_id: {self.customer_account_external_id}, "
                     f"customer_account_new_role_name: {self.customer_account_new_role_name}")
 
-        with open(self.user_side_stack_cf_filename) as f:
+        with open(self.user_side_stack_file_path) as f:
             template_body = f.read()
 
         response = self.cloudformation_client.create_stack_set(
