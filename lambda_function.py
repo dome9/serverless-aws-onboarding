@@ -245,7 +245,7 @@ class LambdaHandler(object):
 
         try:
             self.create_stack_set()
-            logger.error(f"StackSet '{self.MASTER_ACCOUNT_PERMISSIONS_STACK_SET_NAME}' created")
+            logger.info(f"StackSet '{self.MASTER_ACCOUNT_PERMISSIONS_STACK_SET_NAME}' created")
         except Exception as e:
             repr_e_lower = repr(e).lower()
             if "already" in repr_e_lower and "exists" in repr_e_lower:
