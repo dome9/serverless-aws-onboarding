@@ -3,6 +3,7 @@ import boto3
 import time
 import logging
 import base64
+import os
 
 from dome9_type_annotations.client import Client
 from resources.aws_cloud_account import CloudAccount, CloudAccountCredentials
@@ -23,7 +24,6 @@ class LambdaHandler(object):
     MASTER_ACCOUNT_STACK_SET_ROLE = "service-role/AWSControlTowerStackSetRole"
     STACK_OPERATION_WAIT_RETRIES = 60  # 5 minutes
     STACK_OPERATION_WAIT_SLEEP = 5
-    DOME9_SECRET_NAME = "Dome9ApiKeys"
 
     def __init__(self, region_name: str, customer_account_id: str, customer_account_name: str,
                  readonly: bool = True) -> None:
@@ -52,10 +52,7 @@ class LambdaHandler(object):
             service_name='secretsmanager',
             region_name=self.region_name)
 
-        if readonly:
-            self.user_side_stack_cf_filename = "user_side_stack_ro.yaml"
-        else:
-            self.user_side_stack_cf_filename = "user_side_stack_full.yaml"
+        self.user_side_stack_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "user_side_stack.yaml")
 
     @staticmethod
     def retrieve_master_account_id() -> str:
@@ -92,13 +89,13 @@ class LambdaHandler(object):
                 SecretId=LambdaHandler.DOME9_SECRET_NAME
             )
         except Exception as e:
-            logger.error(f"Could not get secret value for SecretId: {LambdaHandler.DOME9_SECRET_NAME}")
+            logger.error(f"Could not get secret value for SecretId: {LambdaHandler.DOME9_SECRET_NAME}. Error: {repr(e)}")
             raise
         else:
             if 'SecretString' in secret_value_response:
                 secret = secret_value_response['SecretString']
                 return json.loads(secret)
-            
+
             decoded_binary_secret = base64.b64decode(secret_value_response['SecretBinary'])
             return json.loads(decoded_binary_secret)
 
@@ -172,7 +169,7 @@ class LambdaHandler(object):
                     StackSetName=self.MASTER_ACCOUNT_PERMISSIONS_STACK_SET_NAME, OperationId=operation_id)
                 current_status = response.get('StackSetOperation').get('Status')
             except Exception as e:
-                logger.error(f"Failed to fetch operation's {operation_name} status {current_status}")
+                logger.error(f"Failed to fetch operation's {operation_name} with error {repr(e)}")
 
             logger.info(f"Current operation: '{operation_name}' Status: {current_status}")
 
@@ -225,10 +222,15 @@ class LambdaHandler(object):
         :return: Response from Dome9 API
         """
         dome9_api_keys = self.get_secret()
+
+        logger.info("Initiating Dome9 Client")
         dome9_client = Client(access_id=dome9_api_keys['AccessId'], secret_key=dome9_api_keys['Secret'])
+        logger.info("Initiating Dome9 CloudAccountCredentials")
         credentials = CloudAccountCredentials(arn=self.customer_account_new_role_arn,
                                               secret=self.customer_account_external_id)
+        logger.info("Initiating Dome9 CloudAccount")
         payload = CloudAccount(name=self.customer_account_name, credentials=credentials)
+        logger.info("Sending API request to Dome9")
         response = dome9_client.aws_cloud_account.create(body=payload)
         logger.info(f"Received reply from dome9 API: {response}")
 
@@ -269,8 +271,7 @@ class LambdaHandler(object):
             logger.error(f"An error '{repr(e)}' occurred in the onboarding process. Aborting the flow. "
                          f"Going to delete the StackInstance")
             self.delete_stack_instances()
-
-        return {"Status": "Failure"}
+            raise
 
 
 def lambda_handler(event: Dict, context: Dict) -> Dict:
@@ -284,6 +285,7 @@ def lambda_handler(event: Dict, context: Dict) -> Dict:
     :param context: AWS lambda context
     :return: Status
     """
+    logger.info(f"Triggered by ControlTower event. Event details: {event}")
 
     event = event["detail"]
     event_state = event["serviceEventDetails"]["createManagedAccountStatus"]["state"]
@@ -291,7 +293,7 @@ def lambda_handler(event: Dict, context: Dict) -> Dict:
     new_account_id = event["serviceEventDetails"]["createManagedAccountStatus"]["account"]["accountId"]
     new_account_name = event["serviceEventDetails"]["createManagedAccountStatus"]["account"]["accountName"]
 
-    logger.info(f"Triggered by ControlTower event. Event correct state: 'SUCCESS'. Reported state: '{event_state}'")
+    logger.info(f"Event correct state: 'SUCCESS'. Reported state: '{event_state}'")
 
     lmb_handler = LambdaHandler(aws_region, new_account_id, new_account_name)
 

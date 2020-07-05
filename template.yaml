@@ -12,7 +12,7 @@ Metadata:
     ReadmeUrl: README.md
     Labels: ['Dome9', 'automation', 'checkpoint']
     HomePageUrl: https://github.com/dome9/serverless-aws-onboarding
-    SemanticVersion: 1.0.2
+    SemanticVersion: 1.0.3
     SourceCodeUrl: https://github.com/dome9/serverless-aws-onboarding
 
 Parameters:
