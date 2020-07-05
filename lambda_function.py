@@ -24,6 +24,7 @@ class LambdaHandler(object):
     MASTER_ACCOUNT_STACK_SET_ROLE = "service-role/AWSControlTowerStackSetRole"
     STACK_OPERATION_WAIT_RETRIES = 60  # 5 minutes
     STACK_OPERATION_WAIT_SLEEP = 5
+    DOME9_SECRET_NAME = "Dome9ApiKeys"
 
     def __init__(self, region_name: str, customer_account_id: str, customer_account_name: str,
                  readonly: bool = True) -> None:
