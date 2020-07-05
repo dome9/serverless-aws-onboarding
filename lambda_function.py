@@ -196,7 +196,7 @@ class LambdaHandler(object):
         try:
             response = self.cloudformation_client.delete_stack_instances(
                 StackSetName=self.MASTER_ACCOUNT_PERMISSIONS_STACK_SET_NAME,
-                Regions=[self.region_name], RetainStacks=True,
+                Regions=[self.region_name], RetainStacks=False,
                 Accounts=[self.customer_account_id])
         except Exception as e:
             logger.warning(f"Stack instance deletion failed with error: {repr(e)}. "
@@ -249,7 +249,7 @@ class LambdaHandler(object):
         except Exception as e:
             repr_e_lower = repr(e).lower()
             if "already" in repr_e_lower and "exists" in repr_e_lower:
-                logger.error(
+                logger.warning(
                     f"StackSet '{self.MASTER_ACCOUNT_PERMISSIONS_STACK_SET_NAME}' already exists. Skipping this step.")
                 self.delete_stack_instances()
             else:
