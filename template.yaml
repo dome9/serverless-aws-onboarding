@@ -26,6 +26,16 @@ Parameters:
     Type: String
     Default: "SECRET_KEY"
     NoEcho: true
+  Dome9Region:
+    Type: String
+    Default: "us-east-1"
+    AllowedValues:
+      - us-east-1
+      - eu-west-1
+      - ap-southeast-1
+      - ap-southeast-2
+      - ap-south-1
+    Description: Enter a Deom9 region to register. allowed values are us-east-1, eu-west-1, ap-southeast-1, ap-southeast-2 or ap-south-1. Default is us-east-1.
 
 Resources:
   Dome9AutomationLambda:
@@ -52,6 +62,9 @@ Resources:
                   - CreateManagedAccount
       Tags:
         'Name': "CreateManagedAccountDome9Automation"
+      Environment:
+        Variables:
+          DOME9_REGION: !Ref Dome9Region
 
   Dome9ApiKeys:
     Type: AWS::SecretsManager::Secret

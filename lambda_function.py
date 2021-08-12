@@ -25,6 +25,14 @@ class LambdaHandler(object):
     STACK_OPERATION_WAIT_RETRIES = 60  # 5 minutes
     STACK_OPERATION_WAIT_SLEEP = 5
     DOME9_SECRET_NAME = "Dome9ApiKeys"
+    DOME9_REGION_NAME = "DOME9_REGION"
+    DOME9_BASE_URLS = {
+        "us-east-1": "https://api.dome9.com/v2/",
+        "eu-west-1": "https://api.eu1.dome9.com/v2/",
+        "ap-southeast-1": "https://api.ap1.dome9.com/v2/",
+        "ap-southeast-2": "https://api.ap2.dome9.com/v2/",
+        "ap-south-1": "https://api.ap3.dome9.com/v2/",
+    }
 
     def __init__(self, region_name: str, customer_account_id: str, customer_account_name: str,
                  readonly: bool = True) -> None:
@@ -99,6 +107,16 @@ class LambdaHandler(object):
 
             decoded_binary_secret = base64.b64decode(secret_value_response['SecretBinary'])
             return json.loads(decoded_binary_secret)
+
+    def get_region_url(self) -> str:
+        """
+        Get Dome9 Region url to register
+
+        :return:
+        """
+        logger.info("Getting Dome9 Region from environment")
+        region = os.environ.get(self.DOME9_REGION_NAME, 'us-east-1')
+        return self.DOME9_BASE_URLS[region]
 
     def create_stack_set(self) -> Dict:
         """
@@ -223,9 +241,11 @@ class LambdaHandler(object):
         :return: Response from Dome9 API
         """
         dome9_api_keys = self.get_secret()
+        region_url = self.get_region_url()
 
         logger.info("Initiating Dome9 Client")
-        dome9_client = Client(access_id=dome9_api_keys['AccessId'], secret_key=dome9_api_keys['Secret'])
+        dome9_client = Client(access_id=dome9_api_keys['AccessId'], secret_key=dome9_api_keys['Secret'],
+                              base_url=region_url)
         logger.info("Initiating Dome9 CloudAccountCredentials")
         credentials = CloudAccountCredentials(arn=self.customer_account_new_role_arn,
                                               secret=self.customer_account_external_id)
