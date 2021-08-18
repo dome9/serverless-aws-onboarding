@@ -12,7 +12,7 @@ Metadata:
     ReadmeUrl: README.md
     Labels: ['Dome9', 'automation', 'checkpoint']
     HomePageUrl: https://github.com/dome9/serverless-aws-onboarding
-    SemanticVersion: 1.0.3
+    SemanticVersion: 2.0.0
     SourceCodeUrl: https://github.com/dome9/serverless-aws-onboarding
 
 Parameters:
@@ -94,7 +94,7 @@ Resources:
               - Sid: VisualEditor0
                 Effect: Allow
                 Action: cloudformation:CreateStackInstances
-                Resource: arn:aws:cloudformation:*:*:stackset/Dome9AutomaticOnboardingStackSet:*
+                Resource: arn:aws:cloudformation:*:*:stackset/Dome9AutomaticOnboardingStackSetV2:*
               - Sid: VisualEditor1
                 Effect: Allow
                 Action: cloudformation:CreateStackSet
@@ -102,11 +102,11 @@ Resources:
               - Sid: VisualEditor2
                 Effect: Allow
                 Action: cloudformation:DeleteStackInstances
-                Resource: arn:aws:cloudformation:*:*:stackset/Dome9AutomaticOnboardingStackSet:*
+                Resource: arn:aws:cloudformation:*:*:stackset/Dome9AutomaticOnboardingStackSetV2:*
               - Sid: VisualEditor3
                 Effect: Allow
                 Action: cloudformation:DescribeStackSetOperation
-                Resource: arn:aws:cloudformation:*:*:stackset/Dome9AutomaticOnboardingStackSet:*
+                Resource: arn:aws:cloudformation:*:*:stackset/Dome9AutomaticOnboardingStackSetV2:*
         - PolicyName: PermitPassRoleOnAWSControlTowerStackSetRole
           PolicyDocument:
             Version: '2012-10-17'
