@@ -19,12 +19,27 @@ class OperationFailedError(Exception):
 
 
 class LambdaHandler(object):
-    MASTER_ACCOUNT_PERMISSIONS_STACK_SET_NAME = 'Dome9AutomaticOnboardingStackSet'
+    MASTER_ACCOUNT_PERMISSIONS_STACK_SET_NAME = 'Dome9AutomaticOnboardingStackSetV2'
     CUSTOMER_ACCOUNT_EXECUTION_ROLE_NAME = "AWSControlTowerExecution"
     MASTER_ACCOUNT_STACK_SET_ROLE = "service-role/AWSControlTowerStackSetRole"
     STACK_OPERATION_WAIT_RETRIES = 60  # 5 minutes
     STACK_OPERATION_WAIT_SLEEP = 5
     DOME9_SECRET_NAME = "Dome9ApiKeys"
+    DOME9_REGION_NAME = "DOME9_REGION"
+    DOME9_BASE_URLS = {
+        "us-east-1": "https://api.dome9.com/v2/",
+        "eu-west-1": "https://api.eu1.dome9.com/v2/",
+        "ap-southeast-1": "https://api.ap1.dome9.com/v2/",
+        "ap-southeast-2": "https://api.ap2.dome9.com/v2/",
+        "ap-south-1": "https://api.ap3.dome9.com/v2/",
+    }
+    DOME9_AWS_ACCOUNT_IDS = {
+        "us-east-1": "634729597623",
+        "eu-west-1": "723885542676",
+        "ap-southeast-1": "597850136722",
+        "ap-southeast-2": "434316140879",
+        "ap-south-1": "578204784313",
+    }
 
     def __init__(self, region_name: str, customer_account_id: str, customer_account_name: str,
                  readonly: bool = True) -> None:
@@ -43,6 +58,9 @@ class LambdaHandler(object):
         self.customer_account_new_role_name = f"Dome9Role-{self.master_account_id}-{self.customer_account_id}"
         self.customer_account_new_role_arn = f"arn:aws:iam::{self.customer_account_id}:role/{self.customer_account_new_role_name}"
         self.customer_account_external_id = self.generate_external_id()
+        self.dome9_region = os.environ.get(self.DOME9_REGION_NAME, 'us-east-1')
+        self.dome9_region_url = self.DOME9_BASE_URLS[self.dome9_region]
+        self.dome9_aws_account_id = self.DOME9_AWS_ACCOUNT_IDS[self.dome9_region]
 
         # Create a CloudFormation client
         self.cloudformation_client = boto3.client(
@@ -112,7 +130,9 @@ class LambdaHandler(object):
         logger.info(f"Creating StackSet: {self.MASTER_ACCOUNT_PERMISSIONS_STACK_SET_NAME}, "
                     f"administrator_role_arn : {administrator_role_arn}, "
                     f"customer_account_external_id: {self.customer_account_external_id}, "
-                    f"customer_account_new_role_name: {self.customer_account_new_role_name}")
+                    f"customer_account_new_role_name: {self.customer_account_new_role_name}, "
+                    f"Dome9AwsAccountId: {self.dome9_aws_account_id}, "
+                    f"Dome9Region: {self.dome9_region}, Dome9RegionUrl: {self.dome9_region_url}")
 
         with open(self.user_side_stack_file_path) as f:
             template_body = f.read()
@@ -122,7 +142,8 @@ class LambdaHandler(object):
             Description="Dome9 auto onboarding stack set",
             TemplateBody=template_body,
             Parameters=[{"ParameterKey": "Externalid", "ParameterValue": "Placeholder"},
-                        {"ParameterKey": "AccountRoleName", "ParameterValue": "Placeholder"}],
+                        {"ParameterKey": "AccountRoleName", "ParameterValue": "Placeholder"},
+                        {"ParameterKey": "Dome9AwsAccountId", "ParameterValue": "Placeholder"}],
             Capabilities=[
                 "CAPABILITY_IAM", "CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND"],
             AdministrationRoleARN=administrator_role_arn,
@@ -137,7 +158,8 @@ class LambdaHandler(object):
         """
         logger.info(f"Creating stack instance for StackSet: {self.MASTER_ACCOUNT_PERMISSIONS_STACK_SET_NAME}, "
                     f"region: {self.region_name}, AccountId: {self.customer_account_id}, "
-                    f"NewRoleName {self.customer_account_new_role_name}")
+                    f"NewRoleName {self.customer_account_new_role_name}, Dome9AwsAccountId: {self.dome9_aws_account_id}, "
+                    f"Dome9Region: {self.dome9_region}, Dome9RegionUrl: {self.dome9_region_url}")
 
         response = self.cloudformation_client.create_stack_instances(
             StackSetName=self.MASTER_ACCOUNT_PERMISSIONS_STACK_SET_NAME,
@@ -145,7 +167,8 @@ class LambdaHandler(object):
             Regions=[self.region_name],
             ParameterOverrides=[
                 {"ParameterKey": "AccountRoleName", "ParameterValue": self.customer_account_new_role_name},
-                {"ParameterKey": "Externalid", "ParameterValue": self.customer_account_external_id}],
+                {"ParameterKey": "Externalid", "ParameterValue": self.customer_account_external_id},
+                {"ParameterKey": "Dome9AwsAccountId", "ParameterValue": self.dome9_aws_account_id}],
             OperationPreferences={
                 "FailureToleranceCount": 0,
                 "MaxConcurrentCount": 3,
@@ -225,7 +248,8 @@ class LambdaHandler(object):
         dome9_api_keys = self.get_secret()
 
         logger.info("Initiating Dome9 Client")
-        dome9_client = Client(access_id=dome9_api_keys['AccessId'], secret_key=dome9_api_keys['Secret'])
+        dome9_client = Client(access_id=dome9_api_keys['AccessId'], secret_key=dome9_api_keys['Secret'],
+                              base_url=self.dome9_region_url)
         logger.info("Initiating Dome9 CloudAccountCredentials")
         credentials = CloudAccountCredentials(arn=self.customer_account_new_role_arn,
                                               secret=self.customer_account_external_id)

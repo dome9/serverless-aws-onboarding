@@ -12,7 +12,7 @@ Metadata:
     ReadmeUrl: README.md
     Labels: ['Dome9', 'automation', 'checkpoint']
     HomePageUrl: https://github.com/dome9/serverless-aws-onboarding
-    SemanticVersion: 1.0.3
+    SemanticVersion: 2.0.0
     SourceCodeUrl: https://github.com/dome9/serverless-aws-onboarding
 
 Parameters:
@@ -26,6 +26,16 @@ Parameters:
     Type: String
     Default: "SECRET_KEY"
     NoEcho: true
+  Dome9Region:
+    Type: String
+    Default: "us-east-1"
+    AllowedValues:
+      - us-east-1
+      - eu-west-1
+      - ap-southeast-1
+      - ap-southeast-2
+      - ap-south-1
+    Description: Enter a Deom9 region to register. allowed values are us-east-1, eu-west-1, ap-southeast-1, ap-southeast-2 or ap-south-1. Default is us-east-1.
 
 Resources:
   Dome9AutomationLambda:
@@ -52,6 +62,9 @@ Resources:
                   - CreateManagedAccount
       Tags:
         'Name': "CreateManagedAccountDome9Automation"
+      Environment:
+        Variables:
+          DOME9_REGION: !Ref Dome9Region
 
   Dome9ApiKeys:
     Type: AWS::SecretsManager::Secret
@@ -81,7 +94,7 @@ Resources:
               - Sid: VisualEditor0
                 Effect: Allow
                 Action: cloudformation:CreateStackInstances
-                Resource: arn:aws:cloudformation:*:*:stackset/Dome9AutomaticOnboardingStackSet:*
+                Resource: arn:aws:cloudformation:*:*:stackset/Dome9AutomaticOnboardingStackSetV2:*
               - Sid: VisualEditor1
                 Effect: Allow
                 Action: cloudformation:CreateStackSet
@@ -89,11 +102,11 @@ Resources:
               - Sid: VisualEditor2
                 Effect: Allow
                 Action: cloudformation:DeleteStackInstances
-                Resource: arn:aws:cloudformation:*:*:stackset/Dome9AutomaticOnboardingStackSet:*
+                Resource: arn:aws:cloudformation:*:*:stackset/Dome9AutomaticOnboardingStackSetV2:*
               - Sid: VisualEditor3
                 Effect: Allow
                 Action: cloudformation:DescribeStackSetOperation
-                Resource: arn:aws:cloudformation:*:*:stackset/Dome9AutomaticOnboardingStackSet:*
+                Resource: arn:aws:cloudformation:*:*:stackset/Dome9AutomaticOnboardingStackSetV2:*
         - PolicyName: PermitPassRoleOnAWSControlTowerStackSetRole
           PolicyDocument:
             Version: '2012-10-17'
