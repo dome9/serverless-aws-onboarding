@@ -1,11 +1,11 @@
-![Dome9 Logo](https://secure.dome9.com/v2/assets/images/cloud-guard/cloud-guard-logo.svg)
+![Dome9 Logo](https://central.dome9.com/assets/images/cloud-guard/cloud-guard-logo.svg)
 
 # CloudGuard Dome9 Automatic onboarding application
 Source code for AWS serverless application to automatically onboard AWS accounts to CloudGuard Dome9 when a new account is created, using the AWS Control Tower service.
 
 ## Prerequisites
 - [ControlTower](https://aws.amazon.com/controltower/) properly installed in root account. 
-- CloudGuard Dome9 account. S sign up [here](https://secure.dome9.com/).
+- CloudGuard Dome9 account. Sign up [here](https://secure.dome9.com/).
 
 ## What's included
 - Lambda function for onboarding automation
@@ -20,8 +20,8 @@ Source code for AWS serverless application to automatically onboard AWS accounts
 3. Navigate to Lambda -> Create Function.
 4. Select "Browse serverless app repository option"
 5. Check the "Show apps that create custom IAM roles or resource policies".
-6. Enter `dome9` inside the search input. 
-7. Click  "dome9-automatic-onboarding".
+6. Enter `CloudGuard` inside the search input. 
+7. Click  "cloudguard-automatic-onboarding".
 8. Enter the required fields `Dome9AccessId` .and `Dome9SecretKey` with you keys from previous steps.
 9. Enter an email address in the `NotificationEmail` field. Any onboarding failures will be sent to this address.
 10. Check the `I acknowledge that this app creates custom IAM roles.` (If it appears). 
