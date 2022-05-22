@@ -1,11 +1,11 @@
 ![Dome9 Logo](https://central.dome9.com/assets/images/cloud-guard/cloud-guard-logo.svg)
 
-# CloudGuard Dome9 Automatic onboarding application
-Source code for AWS serverless application to automatically onboard AWS accounts to CloudGuard Dome9 when a new account is created, using the AWS Control Tower service.
+# CloudGuard Automatic onboarding application
+Source code for AWS serverless application to automatically onboard AWS accounts to CloudGuard when a new account is created, using the AWS Control Tower service.
 
 ## Prerequisites
 - [ControlTower](https://aws.amazon.com/controltower/) properly installed in root account. 
-- CloudGuard Dome9 account. Sign up [here](https://secure.dome9.com/).
+- CloudGuard account. Sign up [here](https://secure.dome9.com/).
 
 ## What's included
 - Lambda function for onboarding automation
@@ -15,7 +15,7 @@ Source code for AWS serverless application to automatically onboard AWS accounts
 - SNS topic for email notifications (subscription confirmation email will be sent)
 
 ## Installation from the AWS Console
-1. Generate CloudGuard Dome9 API keys. Follow instructions [here](https://supportcenter.checkpoint.com/supportcenter/portal?eventSubmit_doGoviewsolutiondetails=&solutionid=sk144514&partition=General&product=CloudGuard).
+1. Generate CloudGuard API keys. Follow instructions [here](https://supportcenter.checkpoint.com/supportcenter/portal?eventSubmit_doGoviewsolutiondetails=&solutionid=sk144514&partition=General&product=CloudGuard).
 2. Login to the AWS Console.
 3. Navigate to Lambda -> Create Function.
 4. Select "Browse serverless app repository option"
