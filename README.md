@@ -30,7 +30,7 @@ Source code for AWS serverless application to automatically onboard AWS accounts
 
 ## Getting started
 1. Once the installation is done, you can create new account.
-2. Go to your 'CloudGuard' (as previous steps in Prerequisites) -> Settings -> Users.
+2. Go to your `CloudGuard` (as previous steps in Prerequisites) -> Settings -> Users.
 3. Click "Add User" enter the required fields and Click Create.
 4. then add permissions -> at least - OnBoarding permission.
 5. Go to AWS Control Tower -> Account Factory.
