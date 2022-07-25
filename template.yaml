@@ -1,18 +1,18 @@
 AWSTemplateFormatVersion: 2010-09-09
 Transform: 'AWS::Serverless-2016-10-31'
-Description: Serverless application for onboarding AWS account to Dome9
+Description: Serverless application for onboarding AWS account to CloudGuard
 
 Metadata:
   AWS::ServerlessRepo::Application:
-    Name: dome9-automatic-onboarding
+    Name: cloudguard-automatic-onboarding
     Description: Automatic onboarding flow triggered by account creation via ControlTower
     Author: SRE team
     SpdxLicenseId: Apache-2.0
     LicenseUrl: LICENSE
     ReadmeUrl: README.md
-    Labels: ['Dome9', 'automation', 'checkpoint']
+    Labels: ['CloudGuard', 'automation', 'checkpoint', 'serverless', 'onboarding']
     HomePageUrl: https://github.com/dome9/serverless-aws-onboarding
-    SemanticVersion: 2.0.0
+    SemanticVersion: 1.0.1
     SourceCodeUrl: https://github.com/dome9/serverless-aws-onboarding
 
 Parameters:
