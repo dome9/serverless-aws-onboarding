@@ -16,13 +16,15 @@ CloudWatch -> CloudWatch Logs -> Log groups -> aws-controltower/CloudTrailLogs -
 2. Install AWS CLI
 3. Install AWS SAM CLI
 4. Create AWS Credential(Key+Password) in your AWS account
-5. Setup AWS Credential file profile
+5. Setup AWS Credential file profile locally
 6. Install Docker
 7. Run in the CMD under the project dir, make sure to adjust some parameter according to your case(Take a look at MakeFile)
    1. `pip install -r requirements.txt`
    2. `sam build --use-container`
-   3. `sam local invoke Dome9AutomationLambda --event ./develop/event_account_creation.json`
+   3. `sam local invoke Dome9AutomationLambda --event ./develop/event_account_creation.json` (Just to test if the lambda is build correctly - It seems that in some cases doesn't work)
    4. `sam package --template-file .aws-sam/build/template.yaml --output-template-file .aws-sam/build/packaged.yaml --s3-bucket cloudguard-cloudtower-integration-sam-template --profile serverless-repo-account --region us-east-1`
+      1. cloudguard-cloudtower-integration-sam-template is the default S3 bucket
+      2. serverless-repo-account is the AWS profile name configured in step:5
    5. `sam publish --template .aws-sam/build/packaged.yaml --region us-east-1 --profile serverless-repo-account`
 8. Test the lambda:
    1. Create the lambda under an onboarded aws account
