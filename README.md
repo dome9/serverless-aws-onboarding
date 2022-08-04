@@ -16,8 +16,8 @@ Source code for AWS serverless application to automatically onboard AWS accounts
 
 ## Installation from the AWS Console
 1. Generate CloudGuard API keys - in one of two ways:
-  1.1. Go to Settings -> Credentials -> Click CREATE API.
-  1.2. Go to Settings -> Service Accounts -> Click Add Account and give it OnBoarding role or SuperUser role.
+  * Go to Settings -> Credentials -> Click CREATE API. 
+  * Go to Settings -> Service Accounts -> Click Add Account and give it OnBoarding role or SuperUser role.
   You can follow instructions [here](https://supportcenter.checkpoint.com/supportcenter/portal?eventSubmit_doGoviewsolutiondetails=&solutionid=sk144514&partition=General&product=CloudGuard).
 2. Login to the AWS Console.
 3. Navigate to Lambda -> Create Function.
