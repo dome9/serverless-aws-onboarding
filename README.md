@@ -5,7 +5,7 @@ Source code for AWS serverless application to automatically onboard AWS accounts
 
 ## Prerequisites
 - [ControlTower](https://aws.amazon.com/controltower/) properly installed in root account. 
-- CloudGuard account  (as a user with All System Resources permission). Sign up [here](https://secure.dome9.com/).
+- CloudGuard account. Sign up [here](https://secure.dome9.com/).
 
 ## What's included
 - Lambda function for onboarding automation
@@ -15,10 +15,7 @@ Source code for AWS serverless application to automatically onboard AWS accounts
 - SNS topic for email notifications (subscription confirmation email will be sent)
 
 ## Installation from the AWS Console
-1. Generate CloudGuard API keys - in one of two ways:
-  1.1. Go to Settings -> Credentials -> Click CREATE API.
-  1.2. Go to Settings -> Service Accounts -> Click Add Account and give it OnBoarding role or SuperUser role.
-  You can follow instructions [here](https://supportcenter.checkpoint.com/supportcenter/portal?eventSubmit_doGoviewsolutiondetails=&solutionid=sk144514&partition=General&product=CloudGuard).
+1. Generate CloudGuard API keys. Follow instructions [here](https://supportcenter.checkpoint.com/supportcenter/portal?eventSubmit_doGoviewsolutiondetails=&solutionid=sk144514&partition=General&product=CloudGuard).
 2. Login to the AWS Console.
 3. Navigate to Lambda -> Create Function.
 4. Select "Browse serverless app repository option"
