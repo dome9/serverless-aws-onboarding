@@ -5,7 +5,7 @@ Source code for AWS serverless application to automatically onboard AWS accounts
 
 ## Prerequisites
 - [ControlTower](https://aws.amazon.com/controltower/) properly installed in root account. 
-- CloudGuard account. Sign up [here](https://secure.dome9.com/).
+- CloudGuard account  (as a user with All System Resources permission). Sign up [here](https://secure.dome9.com/).
 
 ## What's included
 - Lambda function for onboarding automation
